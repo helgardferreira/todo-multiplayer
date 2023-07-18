@@ -1,1 +1,3 @@
 vite.config.ts
+# ignore all files ending with typegen.ts
+**/*typegen.ts
