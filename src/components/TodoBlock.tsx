@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Trash2 } from "react-feather";
 
 import { Todo } from "../types";
-import { deleteTodo, updateTodo } from "../services/Todos";
+import { useTodos } from "../services/Todos";
 import { useOnClickOutside } from "../lib/hooks/useOnClickOutside";
 
 type TodoProps = {
@@ -12,16 +12,17 @@ type TodoProps = {
 const TodoBlock = ({ item }: TodoProps) => {
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const { deleteTodo, updateTodo } = useTodos();
 
   const handleInput = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) =>
       updateTodo(item.id, { text: e.target.value ?? "" }),
-    [item.id]
+    [item.id, updateTodo]
   );
 
   const handleToggle = useCallback(() => {
     updateTodo(item.id, { done: !item.done });
-  }, [item.done, item.id]);
+  }, [item.done, item.id, updateTodo]);
 
   useEffect(() => {
     if (isEditing && inputRef.current) {
@@ -54,7 +55,7 @@ const TodoBlock = ({ item }: TodoProps) => {
 
   const handleDelete = useCallback(() => {
     deleteTodo(item.id);
-  }, [item.id]);
+  }, [deleteTodo, item.id]);
 
   useOnClickOutside(inputRef, handleClickOutside);
 

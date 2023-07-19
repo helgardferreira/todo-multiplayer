@@ -25,7 +25,7 @@
 "attemptSave": "ADD_ITEM" | "DELETE_ITEM" | "UPDATE_ITEM";
 "deleteItem": "DELETE_ITEM";
 "load": "LOAD";
-"merge": "MERGE" | "RESYNC";
+"merge": "RESYNC" | "SYNC";
 "onFail": "error.platform.todos.active.loading:invocation[0]" | "error.platform.todos.active.syncing:invocation[0]" | "error.platform.todos.loading:invocation[0]";
 "save": "RESYNC" | "SAVE";
 "updateItem": "UPDATE_ITEM";
@@ -39,7 +39,7 @@
         eventsCausingServices: {
           "load$": "xstate.init";
 "resync$": "ENABLE_SYNC";
-"sync$": "LOAD" | "MERGE" | "RESYNC" | "SAVE";
+"sync$": "LOAD" | "RESYNC" | "SAVE" | "SYNC";
         };
         matchesStates: "active" | "active.idle" | "active.loading" | "active.syncing" | "failed" | "loading" | { "active"?: "idle" | "loading" | "syncing"; };
         tags: never;

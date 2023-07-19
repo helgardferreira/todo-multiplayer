@@ -1,4 +1,10 @@
-import { createMachine, interpret, assign, StateValueFrom } from "xstate";
+import {
+  createMachine,
+  interpret,
+  assign,
+  StateValueFrom,
+  InterpreterFrom,
+} from "xstate";
 
 import type { Doc } from "@automerge/automerge";
 import * as Automerge from "@automerge/automerge";
@@ -23,7 +29,7 @@ type UpdateItemEvent = {
 };
 type DeleteItemEvent = { type: "DELETE_ITEM"; id: string };
 type LoadEvent = { type: "LOAD"; data?: Uint8Array };
-type MergeEvent = { type: "MERGE"; data: Uint8Array };
+type SyncEvent = { type: "SYNC"; data: Uint8Array };
 type EnableSyncEvent = { type: "ENABLE_SYNC" };
 type DisableSyncEvent = { type: "DISABLE_SYNC" };
 type SaveEvent = { type: "SAVE" };
@@ -33,7 +39,7 @@ type TodosMachineEvent =
   | UpdateItemEvent
   | DeleteItemEvent
   | LoadEvent
-  | MergeEvent
+  | SyncEvent
   | EnableSyncEvent
   | DisableSyncEvent
   | SaveEvent
@@ -43,7 +49,7 @@ const broadcastChannel = new BroadcastChannel("todos");
 
 const todosMachine = createMachine(
   {
-    /** @xstate-layout N4IgpgJg5mDOIC5QBcD2FWwHQEMDGyAlgG5hawCeAdnoVVAMRgBOzqzWADgDY7IBm7ALZY0GbPiKly1WvQR1iqPH0KoqAbQAMAXW07EoTpkJF1hkAA9EARi02ATFnsBWAGwB2AJw+3WgByBADQgFLYAzFrhWA4ALOE2-g4uNh4pHg4AvpkhYpi4BCRgDACCACJlAPoAkgAqAKIAsvoWxrCmalQW1gixGVjxaTZeHuFjDp4hYQj+Wi5Yke4O4V4pPl7h2bno+ZJFDACqAAplJQ01Dc26rSZmXUhWiLFubgv+nrEuLl4OXjZjU0Qbn8Niw-h84Tcyy8ILiHi2IDyEkKpAYZXqABl6uc6k0Wg82h1zA8es8PGDwg4tPF4gEXA4HICEF9-AMNo4oQkArEEUisNxUDgIHRGCw2BweHxBMwRHyBUKRQoqEoVHd9PijLdOt0gYzQogXFotFgIRy-Gkvjycoidth5cL6AwMQB5coakCEu46hBU1mpLzA4HDOIB2JMxJOFyxI3UoMOOw-Xm2gpSMiUGgitHVADKJQAQljKtmAJoAOQAwu7PdqSYgxvN-INgX0jSN-uHUk5ozDwmkNm5HEnxCmilhCBBuMV6qX84WSxWq1riaAet9YmCHCDIjYo7F3m4O-1u+9frNYs8vEPdiiyPbMwAlerzyvXAlL+4roGxUEuBKb8KBAE-gAeGrgxFonhaCMEH-BBV7Iqm-KCg6oqsOwXC8AIwiiMmezSHe8iKMoqjqOqr6au0Xq1ggdiUs4O6eOsfiBB4HZ+GylITB4sQjL+VrbMOeFprIma5gAavUi6UTWn40f48x2DuaScTuPHhB2UZYC8hreDYsRUvEbjwSO0jpnIjCNPU94AOKSeRHrvt6iTGv6bg-AOZIwnq0x2C4rLxsGwYQRMLjZNaVDoHAFhIjc0nLo8CAALQHvqMzGh42n0nEHLhH5xlCbFRIfgldhhqlPzkh4EEZNGbiGp8-j5TeMgZvQhVUbJO7ebYySvDYiSJD4VV+ckxkEVA7UyQl+nhsCMSZW5DJ9J8-E2sO-A4IQk4QJN8U9P14Jad4VWNvGqz+B2uUmuyHj+B4NjAi48LWnyQljhOYC7cVq79Qsm56Q9bmOA9ZU+Z2JpQSeMLUheTWIeNX3ehl8wwueUT6U9y2XSj7L7j4+6NWFQA */
+    /** @xstate-layout N4IgpgJg5mDOIC5QBcD2FWwHQEMDGyAlgG5gDEAggCJUD6AkgCoCiAsgNoAMAuoqAA6ZCRVADs+IAB6IALAHYATFhkBmOTIAc6uSoCsugJwyANCACeiDZ11YV1gGwBGFQpUzd8xwF8vptBmx8IlIyAFUABSoKFgYWDh4JQVhhQjEJaQQZe3tbDXs5Tic5XXsNR2LTCwRSxywNAwM9GQNdOUaNHz90TFwCEnIqZgAZZhimNi5eJBAklLTpjKy5OpdOVwVOAwVHeyzKxH0NZUbN7LKXA06Qfx6g-qxYM1E8QlEoMjAAJ0-UT6x+AA2OGQADNfgBbLA3QJ9UgPJ4vN4IV7EVB4YGpUSTSaJIQicQLRCOTiOJQkkqcOSOFr2BQGRz7BDOTgqLAKVSOXQqFQaDS6BQdXzXbow4JgeHPV7vKj0ADKFAAQiNaLKAJoAOQAwjjprN8elENybBpVDpCo03HpGY5ykoZJsrAZioU7IKugFemKJYj3vKAGrMHUCPGYg1MvlYYmc5otFS0hSua3RrDZXQk0pqXSkq7Qz33R6St5kNVaoMzEPzUAZRxWSNtfKcTgyZw2gzW6xHbY1k0adkKOS0nMivNwwgQAHkZjqxXKkvahK6isEqsHIx1AXErLlF1JxTKB2bZ32V1Dj13OEA1A4CBSj7fX7-IGgiFQ4fn8WX69S5GiVHo-HYguwbJPqhJMiyZKcvYlLUiUdJJtBxwqMSHh8iyMinrcsIfleN5FgASswc5lnqoZgbstRcqSmZxg09i6O2nJsoUpSFNRCiDkKuafnh7xfD8fyAsCYKfJC3G4d+KJohiYiAVMwFzMuUiILSjJppwWANMhxIGE4cYePYmHYDxt5DAA8tQJFLmGGxHOUun0Y2VK7K01q9lgXINAYTYsqS9GCkKojoHAEjQriIFkSuCAALT2IytYDvRenUjIMiuEZI5gOFilhpujJbMsBTZPkdJbGxGXvt6UrZaBUWcgo1oKCUkY1qShj2sUGFcW+2FYGOE41ZFykIFmtQuGUEFOu4Aq7ko3kGI6R52LoFW9SZbyDZWw0DjYC2qPoTicHyM3mESzi7Y0pKaA0jaFBl61QJtSmLA1p1MqUbKplmihNaUC0ZSCOCEBOEBPblNYGCm9ZlPUVJpq9VQ2nommXey9TeY2hk+F4QA */
     id: "todos",
     tsTypes: {} as import("./todos.machine.typegen").Typegen0,
     predictableActionArguments: true,
@@ -85,7 +91,7 @@ const todosMachine = createMachine(
                 actions: "save",
               },
 
-              MERGE: {
+              SYNC: {
                 target: "syncing",
                 actions: "merge",
                 internal: true,
@@ -210,13 +216,10 @@ const todosMachine = createMachine(
     services: {
       load$: (): Observable<LoadEvent> =>
         from(getFromDb("todos")).pipe(map((data) => ({ type: "LOAD", data }))),
-      sync$: (): Observable<MergeEvent> => {
-        console.log("started syncing");
-
-        return fromChannel(broadcastChannel).pipe(
-          map((data) => ({ type: "MERGE", data }))
-        );
-      },
+      sync$: (): Observable<SyncEvent> =>
+        fromChannel(broadcastChannel).pipe(
+          map((data) => ({ type: "SYNC", data }))
+        ),
       resync$: (): Observable<ResyncEvent> =>
         from(getFromDb("todos")).pipe(
           map((data) => ({ type: "RESYNC", data }))
@@ -225,13 +228,13 @@ const todosMachine = createMachine(
   }
 );
 
-const todoService = interpret(todosMachine).start();
+export { todosMachine };
 
-export { todoService };
+type TodosMachineService = InterpreterFrom<typeof todosMachine>;
 
 type TodosMachineStateValue = Exclude<
   StateValueFrom<typeof todosMachine>,
   object
 >;
 
-export type { TodoUpdateData, TodosMachineStateValue };
+export type { TodoUpdateData, TodosMachineService, TodosMachineStateValue };

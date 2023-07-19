@@ -1,23 +1,18 @@
 import { useCallback, useMemo, useState } from "react";
 import "./App.css";
-import {
-  addTodo,
-  disableSyncing,
-  enableSyncing,
-  useTodos,
-} from "./services/Todos";
+import { useTodos } from "./services/Todos";
 import TodoBlock from "./components/TodoBlock";
 
 function App() {
   const [text, setText] = useState<string>("");
-  const { items, state } = useTodos();
+  const { items, state, addTodo, disableSyncing, enableSyncing } = useTodos();
 
   const isSyncing = useMemo(() => state === "active.syncing", [state]);
 
   const toggleSyncing = useCallback(() => {
     if (isSyncing) disableSyncing();
     else enableSyncing();
-  }, [isSyncing]);
+  }, [disableSyncing, enableSyncing, isSyncing]);
 
   const handleInput = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => setText(e.target.value),
