@@ -1,10 +1,4 @@
-import {
-  createMachine,
-  interpret,
-  assign,
-  StateValueFrom,
-  InterpreterFrom,
-} from "xstate";
+import { createMachine, assign, StateValueFrom, InterpreterFrom } from "xstate";
 
 import type { Doc } from "@automerge/automerge";
 import * as Automerge from "@automerge/automerge";
@@ -49,7 +43,7 @@ const broadcastChannel = new BroadcastChannel("todos");
 
 const todosMachine = createMachine(
   {
-    /** @xstate-layout N4IgpgJg5mDOIC5QBcD2FWwHQEMDGyAlgG5gDEAggCJUD6AkgCoCiAsgNoAMAuoqAA6ZCRVADs+IAB6IALAHYATFhkBmOTIAc6uSoCsugJwyANCACeiDZ11YV1gGwBGFQpUzd8xwF8vptBmx8IlIyAFUABSoKFgYWDh4JQVhhQjEJaQQZe3tbDXs5Tic5XXsNR2LTCwRSxywNAwM9GQNdOUaNHz90TFwCEnIqZgAZZhimNi5eJBAklLTpjKy5OpdOVwVOAwVHeyzKxH0NZUbN7LKXA06Qfx6g-qxYM1E8QlEoMjAAJ0-UT6x+AA2OGQADNfgBbLA3QJ9UgPJ4vN4IV7EVB4YGpUSTSaJIQicQLRCOTiOJQkkqcOSOFr2BQGRz7BDOTgqLAKVSOXQqFQaDS6BQdXzXbow4JgeHPV7vKj0ADKFAAQiNaLKAJoAOQAwjjprN8elENybBpVDpCo03HpGY5ykoZJsrAZioU7IKugFemKJYj3vKAGrMHUCPGYg1MvlYYmc5otFS0hSua3RrDZXQk0pqXSkq7Qz33R6St5kNVaoMzEPzUAZRxWSNtfKcTgyZw2gzW6xHbY1k0adkKOS0nMivNwwgQAHkZjqxXKkvahK6isEqsHIx1AXErLlF1JxTKB2bZ32V1Dj13OEA1A4CBSj7fX7-IGgiFQ4fn8WX69S5GiVHo-HYguwbJPqhJMiyZKcvYlLUiUdJJtBxwqMSHh8iyMinrcsIfleN5FgASswc5lnqoZgbstRcqSmZxg09i6O2nJsoUpSFNRCiDkKuafnh7xfD8fyAsCYKfJC3G4d+KJohiYiAVMwFzMuUiILSjJppwWANMhxIGE4cYePYmHYDxt5DAA8tQJFLmGGxHOUun0Y2VK7K01q9lgXINAYTYsqS9GCkKojoHAEjQriIFkSuCAALT2IytYDvRenUjIMiuEZI5gOFilhpujJbMsBTZPkdJbGxGXvt6UrZaBUWcgo1oKCUkY1qShj2sUGFcW+2FYGOE41ZFykIFmtQuGUEFOu4Aq7ko3kGI6R52LoFW9SZbyDZWw0DjYC2qPoTicHyM3mESzi7Y0pKaA0jaFBl61QJtSmLA1p1MqUbKplmihNaUC0ZSCOCEBOEBPblNYGCm9ZlPUVJpq9VQ2nommXey9TeY2hk+F4QA */
+    /** @xstate-layout N4IgpgJg5mDOIC5QBcD2FWwHQEMDGyAlgG5gDEAggCJUD6AkgCoCiAsgNoAMAuoqAA6ZCRVADs+IAB6IALAHYATFhkBmOfLkBGAKyaAbNs4KANCACeiABydtWFTb0yF27Xs0Bfd6bQZs+IqRkAKoAClQULAwsHDwSgrDChGIS0ggyenp2lhnWAJzpipamFgh6lppYlrn5Mpx6igoymnKe3uiYuAQk5FTMADLMkUxsXLxIIPGJyeOpBZUqmtVyuZqaCioKctrFiC6WyrkLbtW5ZTatID4d-t1YsGaieISiUGRgAE7vqO9Y-AA2OGQADNvgBbLBXPxdUh3B5PF4IZ7EVB4QFJUSjUZxIQicQzRCaThrLBElwybQyXLlZqaHYITT2FRYRr2dQUlR6fIXSGdAJgWGPZ6vKj0ADKFAAQgNaKKAJoAOQAwljxpNcSlECoVLZLKp1GU9EY1HI6atFMpOLk5NaFJp0pZNtz2lC+QL4a9xQA1ZgqgQ49Ea+mWWyEnQuMrBhkZU06GRYDKGBm2zhGbQqJ2+Xm3e6Cl5kOVK30Tf3TUCpTTWLDNU5WlSHSy6uqmmz7W0VuR6FQO7T1jPXaH8wgQP7kZjyyXSgvK2Kqkt4su7fKVBR5XJEtRdmQx821K02u1lR1eS7OrMwv6oHAQIVvT7fX4A4FgiGnm7ny-XhFIlFosSYmd+gk6r4vSnAbCSYbkpS1JyCoMaGgcCwrGsqbnMePJvvyF5XjeABKzBTkWaoBiBjgVGmawVqo2iWCo5LNjozJ1J2ciWKxtS2n22DYZ+rwfF8Pz-ICILvOCPI8UKiKiMiqK4v+YyAVM85SIgAC0lJYFahqLA6Wj1AYppNBUwawacTQduouRcVgEl5n0ADy1BEXOgb2LYVJ1goKxuLawZ0h2+ywfUNjpKsnKWJ4x6iOgcASJC2JASRC4IKpVqaR2RJUps+gdts5iyHInCaYc+gcoVLLWZhCVKYGhJbvlCC5JsWCFTkmyNOkXLoa+A5ukK1XAclOgmA1ayuFWFY6CmajkpylW9UOI4DUlKkILoFQbOUYEuHRrLbkoa57ooB66fNrq2VAy2lqtuWabqWqKG4dW5DG2rFUc1QLF2HLWRdV3KeWNhMdUaYptYsG0g1AXMkmWwKGUXYdtZQI4IQI4QP9tUVrk8bLHojR6Y0eive5JWciV316JF7hAA */
     id: "todos",
     tsTypes: {} as import("./todos.machine.typegen").Typegen0,
     predictableActionArguments: true,
@@ -93,7 +87,7 @@ const todosMachine = createMachine(
 
               SYNC: {
                 target: "syncing",
-                actions: "merge",
+                actions: "sync",
                 internal: true,
               },
             },
@@ -114,7 +108,7 @@ const todosMachine = createMachine(
             on: {
               RESYNC: {
                 target: "syncing",
-                actions: ["merge", "save"],
+                actions: ["sync", "save"],
               },
             },
           },
@@ -200,7 +194,7 @@ const todosMachine = createMachine(
         });
         broadcastChannel.postMessage(binary);
       },
-      merge: assign(({ doc }, { data }) => {
+      sync: assign(({ doc }, { data }) => {
         if (!doc) throw new Error("Todos document is missing");
 
         const newDoc = Automerge.merge(doc, Automerge.load(data));

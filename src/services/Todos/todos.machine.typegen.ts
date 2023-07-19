@@ -25,9 +25,9 @@
 "attemptSave": "ADD_ITEM" | "DELETE_ITEM" | "UPDATE_ITEM";
 "deleteItem": "DELETE_ITEM";
 "load": "LOAD";
-"merge": "RESYNC" | "SYNC";
 "onFail": "error.platform.todos.active.loading:invocation[0]" | "error.platform.todos.active.syncing:invocation[0]" | "error.platform.todos.loading:invocation[0]";
 "save": "RESYNC" | "SAVE";
+"sync": "RESYNC" | "SYNC";
 "updateItem": "UPDATE_ITEM";
         };
         eventsCausingDelays: {
