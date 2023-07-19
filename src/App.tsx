@@ -1,11 +1,23 @@
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import "./App.css";
-import { addTodo, useTodos } from "./services/Todos";
+import {
+  addTodo,
+  disableSyncing,
+  enableSyncing,
+  useTodos,
+} from "./services/Todos";
 import TodoBlock from "./components/TodoBlock";
 
 function App() {
   const [text, setText] = useState<string>("");
-  const { items } = useTodos();
+  const { items, state } = useTodos();
+
+  const isSyncing = useMemo(() => state === "active.syncing", [state]);
+
+  const toggleSyncing = useCallback(() => {
+    if (isSyncing) disableSyncing();
+    else enableSyncing();
+  }, [isSyncing]);
 
   const handleInput = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => setText(e.target.value),
@@ -29,6 +41,9 @@ function App() {
           placeholder="Insert todo text here..."
         />
         <button type="submit">Add</button>
+        <button onClick={toggleSyncing}>
+          {isSyncing ? "Disable" : "Enable"} Syncing
+        </button>
       </form>
       <ul>
         {items.map((item) => (

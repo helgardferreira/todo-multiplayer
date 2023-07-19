@@ -1,4 +1,4 @@
-import { createMachine, interpret, assign } from "xstate";
+import { createMachine, interpret, assign, StateValueFrom } from "xstate";
 
 import type { Doc } from "@automerge/automerge";
 import * as Automerge from "@automerge/automerge";
@@ -7,6 +7,7 @@ import { Todo, TodoList } from "../../types";
 import { Observable, from, map } from "rxjs";
 import { getFromDb, putInDb } from "../db";
 import fromChannel from "../../lib/rxjs/fromChannel";
+import { raise } from "xstate/lib/actions";
 
 type TodosMachineContext = {
   doc?: Doc<TodoList>;
@@ -20,19 +21,29 @@ type UpdateItemEvent = {
   id: string;
   data: TodoUpdateData;
 };
+type DeleteItemEvent = { type: "DELETE_ITEM"; id: string };
 type LoadEvent = { type: "LOAD"; data?: Uint8Array };
 type MergeEvent = { type: "MERGE"; data: Uint8Array };
+type EnableSyncEvent = { type: "ENABLE_SYNC" };
+type DisableSyncEvent = { type: "DISABLE_SYNC" };
+type SaveEvent = { type: "SAVE" };
+type ResyncEvent = { type: "RESYNC"; data: Uint8Array };
 type TodosMachineEvent =
   | AddItemEvent
   | UpdateItemEvent
+  | DeleteItemEvent
   | LoadEvent
-  | MergeEvent;
+  | MergeEvent
+  | EnableSyncEvent
+  | DisableSyncEvent
+  | SaveEvent
+  | ResyncEvent;
 
 const broadcastChannel = new BroadcastChannel("todos");
 
 const todosMachine = createMachine(
   {
-    /** @xstate-layout N4IgpgJg5mDOIC5QBcD2FWwHQEMDGyAlgG5gDEYATpapVgA4A2OyAZrQLZZobb5GkEhAHbFUeFoVTCA2gAYAuvIWJQ9TISLTVIAB6IArAHYDWAGxGAnEbkAmAIwAWWxcsAaEAE9DRgMxYDewMzQKNHA2s5RwBfaI8eTFwCEnIAQQARdIB9AEkAFQBRAFllHXVYTSlhHX0ERyCsOSMADntfILNHZrMnAw9vOts5czlLX2a-dsd2o1j49ET+FLIAVQAFdNTC3MKSxTKNLWqkPURHOXssX18h22tfS2bm9v7EO6MsIfb7FovW3zMcxACT4yVIZCKBQASgBxAqlE7lSraE61ZymIz2Ua+aYGeoGQKvBBDYZhSzk5r1WyBORyZpAkFYQgQRjkKg0OhMFjsShcRnM1lCUTiSTSZQItSHKo1N4uLBWMxPAy+OQhZrKvpeRCtAK02noyy2J6jBkLbAC8gAGQA8hkJSAkUcZcS5QqlSq1Rqicr-JYCUYA2YHHSorE4iBhOg4DoQQcKk7UYgALRmIkpxp6zNZpym3hJARgOPI46gWrjZqfFzBHqGw3K1NahB4yyNDrBbpYxyPXOJC1FhOls62b32FuK2xG65mR602w97CsHCEVkQfvSxMIPwtowhMwhdpmVXPb3XLBjCfNWy+AyTlph6JAA */
+    /** @xstate-layout N4IgpgJg5mDOIC5QBcD2FWwHQEMDGyAlgG5hawCeAdnoVVAMRgBOzqzWADgDY7IBm7ALZY0GbPiKly1WvQR1iqPH0KoqAbQAMAXW07EoTpkJF1hkAA9EARi02ATFnsBWAGwB2AJw+3WgByBADQgFLYAzFrhWA4ALOE2-g4uNh4pHg4AvpkhYpi4BCRgDACCACJlAPoAkgAqAKIAsvoWxrCmalQW1gixGVjxaTZeHuFjDp4hYQj+Wi5Yke4O4V4pPl7h2bno+ZJFDACqAAplJQ01Dc26rSZmXUhWiLFubgv+nrEuLl4OXjZjU0Qbn8Niw-h84Tcyy8ILiHi2IDyEkKpAYZXqABl6uc6k0Wg82h1zA8es8PGDwg4tPF4gEXA4HICEF9-AMNo4oQkArEEUisNxUDgIHRGCw2BweHxBMwRHyBUKRQoqEoVHd9PijLdOt0gYzQogXFotFgIRy-Gkvjycoidth5cL6AwMQB5coakCEu46hBU1mpLzA4HDOIB2JMxJOFyxI3UoMOOw-Xm2gpSMiUGgitHVADKJQAQljKtmAJoAOQAwu7PdqSYgxvN-INgX0jSN-uHUk5ozDwmkNm5HEnxCmilhCBBuMV6qX84WSxWq1riaAet9YmCHCDIjYo7F3m4O-1u+9frNYs8vEPdiiyPbMwAlerzyvXAlL+4roGxUEuBKb8KBAE-gAeGrgxFonhaCMEH-BBV7Iqm-KCg6oqsOwXC8AIwiiMmezSHe8iKMoqjqOqr6au0Xq1ggdiUs4O6eOsfiBB4HZ+GylITB4sQjL+VrbMOeFprIma5gAavUi6UTWn40f48x2DuaScTuPHhB2UZYC8hreDYsRUvEbjwSO0jpnIjCNPU94AOKSeRHrvt6iTGv6bg-AOZIwnq0x2C4rLxsGwYQRMLjZNaVDoHAFhIjc0nLo8CAALQHvqMzGh42n0nEHLhH5xlCbFRIfgldhhqlPzkh4EEZNGbiGp8-j5TeMgZvQhVUbJO7ebYySvDYiSJD4VV+ckxkEVA7UyQl+nhsCMSZW5DJ9J8-E2sO-A4IQk4QJN8U9P14Jad4VWNvGqz+B2uUmuyHj+B4NjAi48LWnyQljhOYC7cVq79Qsm56Q9bmOA9ZU+Z2JpQSeMLUheTWIeNX3ehl8wwueUT6U9y2XSj7L7j4+6NWFQA */
     id: "todos",
     tsTypes: {} as import("./todos.machine.typegen").Typegen0,
     predictableActionArguments: true,
@@ -41,36 +52,72 @@ const todosMachine = createMachine(
       events: {} as TodosMachineEvent,
     },
     context: {},
-    initial: "idle",
+    initial: "loading",
     states: {
       active: {
         on: {
           ADD_ITEM: {
-            target: "active",
-            internal: true,
-            actions: ["addItem", "save"],
+            actions: ["addItem", "attemptSave"],
           },
 
           UPDATE_ITEM: {
-            target: "active",
-            internal: true,
-            actions: ["updateItem", "save"],
+            actions: ["updateItem", "attemptSave"],
           },
 
-          MERGE: {
-            target: "active",
-            internal: true,
-            actions: "merge",
+          DELETE_ITEM: {
+            actions: ["deleteItem", "attemptSave"],
           },
         },
 
-        invoke: {
-          src: "syncing$",
-          onError: "failed",
+        states: {
+          syncing: {
+            invoke: {
+              src: "sync$",
+              onError: "#todos.failed",
+            },
+
+            on: {
+              DISABLE_SYNC: "idle",
+
+              SAVE: {
+                target: "syncing",
+                internal: true,
+                actions: "save",
+              },
+
+              MERGE: {
+                target: "syncing",
+                actions: "merge",
+                internal: true,
+              },
+            },
+          },
+
+          idle: {
+            on: {
+              ENABLE_SYNC: "loading",
+            },
+          },
+
+          loading: {
+            invoke: {
+              src: "resync$",
+              onError: "#todos.failed",
+            },
+
+            on: {
+              RESYNC: {
+                target: "syncing",
+                actions: ["merge", "save"],
+              },
+            },
+          },
         },
+
+        initial: "syncing",
       },
 
-      idle: {
+      loading: {
         on: {
           LOAD: {
             target: "active",
@@ -79,7 +126,7 @@ const todosMachine = createMachine(
         },
 
         invoke: {
-          src: "loading$",
+          src: "load$",
           onError: "failed",
         },
       },
@@ -117,11 +164,26 @@ const todosMachine = createMachine(
           doc: newDoc,
         };
       }),
+      deleteItem: assign(({ doc }, { id }) => {
+        if (!doc) throw new Error("Todos document is missing");
+
+        const newDoc = Automerge.change(doc, (doc) => {
+          const todoIdx = doc.items.findIndex((item) => item.id === id);
+          if (todoIdx === -1) return;
+
+          doc.items.splice(todoIdx, 1);
+        });
+
+        return {
+          doc: newDoc,
+        };
+      }),
       load: assign((_, { data }) => {
         if (data) return { doc: Automerge.load<TodoList>(data) };
 
         return { doc: Automerge.from<TodoList>({ items: [] }) };
       }),
+      attemptSave: raise("SAVE"),
       save: ({ doc }) => {
         if (!doc) throw new Error("Todos document is missing");
 
@@ -146,11 +208,18 @@ const todosMachine = createMachine(
       },
     },
     services: {
-      loading$: (): Observable<LoadEvent> =>
+      load$: (): Observable<LoadEvent> =>
         from(getFromDb("todos")).pipe(map((data) => ({ type: "LOAD", data }))),
-      syncing$: (): Observable<MergeEvent> =>
-        fromChannel(broadcastChannel).pipe(
-          map((data) => ({ type: "MERGE", data } as MergeEvent))
+      sync$: (): Observable<MergeEvent> => {
+        console.log("started syncing");
+
+        return fromChannel(broadcastChannel).pipe(
+          map((data) => ({ type: "MERGE", data }))
+        );
+      },
+      resync$: (): Observable<ResyncEvent> =>
+        from(getFromDb("todos")).pipe(
+          map((data) => ({ type: "RESYNC", data }))
         ),
     },
   }
@@ -160,4 +229,9 @@ const todoService = interpret(todosMachine).start();
 
 export { todoService };
 
-export type { TodoUpdateData };
+type TodosMachineStateValue = Exclude<
+  StateValueFrom<typeof todosMachine>,
+  object
+>;
+
+export type { TodoUpdateData, TodosMachineStateValue };

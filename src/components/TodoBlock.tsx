@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Trash2 } from "react-feather";
+
 import { Todo } from "../types";
-import { updateTodo } from "../services/Todos";
+import { deleteTodo, updateTodo } from "../services/Todos";
 import { useOnClickOutside } from "../lib/hooks/useOnClickOutside";
 
 type TodoProps = {
@@ -42,7 +44,7 @@ const TodoBlock = ({ item }: TodoProps) => {
     };
   }, []);
 
-  const handleClick = useCallback(() => {
+  const startEditing = useCallback(() => {
     setIsEditing(true);
   }, []);
 
@@ -50,10 +52,17 @@ const TodoBlock = ({ item }: TodoProps) => {
     setIsEditing(false);
   }, []);
 
+  const handleDelete = useCallback(() => {
+    deleteTodo(item.id);
+  }, [item.id]);
+
   useOnClickOutside(inputRef, handleClickOutside);
 
   return (
     <div className="todo-block">
+      <button onClick={handleDelete}>
+        <Trash2 width={16} height={16} />
+      </button>
       <input type="checkbox" checked={item.done} onChange={handleToggle} />
       {isEditing ? (
         <input
@@ -63,7 +72,7 @@ const TodoBlock = ({ item }: TodoProps) => {
           value={item.text}
         />
       ) : (
-        <div onClick={handleClick}>{item.text}</div>
+        <div onClick={startEditing}>{item.text}</div>
       )}
     </div>
   );

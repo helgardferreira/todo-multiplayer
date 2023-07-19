@@ -4,13 +4,15 @@
   export interface Typegen0 {
         '@@xstate/typegen': true;
         internalEvents: {
-          "error.platform.todos.active:invocation[0]": { type: "error.platform.todos.active:invocation[0]"; data: unknown };
-"error.platform.todos.idle:invocation[0]": { type: "error.platform.todos.idle:invocation[0]"; data: unknown };
+          "error.platform.todos.active.loading:invocation[0]": { type: "error.platform.todos.active.loading:invocation[0]"; data: unknown };
+"error.platform.todos.active.syncing:invocation[0]": { type: "error.platform.todos.active.syncing:invocation[0]"; data: unknown };
+"error.platform.todos.loading:invocation[0]": { type: "error.platform.todos.loading:invocation[0]"; data: unknown };
 "xstate.init": { type: "xstate.init" };
         };
         invokeSrcNameMap: {
-          "loading$": "done.invoke.todos.idle:invocation[0]";
-"syncing$": "done.invoke.todos.active:invocation[0]";
+          "load$": "done.invoke.todos.loading:invocation[0]";
+"resync$": "done.invoke.todos.active.loading:invocation[0]";
+"sync$": "done.invoke.todos.active.syncing:invocation[0]";
         };
         missingImplementations: {
           actions: never;
@@ -20,10 +22,12 @@
         };
         eventsCausingActions: {
           "addItem": "ADD_ITEM";
+"attemptSave": "ADD_ITEM" | "DELETE_ITEM" | "UPDATE_ITEM";
+"deleteItem": "DELETE_ITEM";
 "load": "LOAD";
-"merge": "MERGE";
-"onFail": "error.platform.todos.active:invocation[0]" | "error.platform.todos.idle:invocation[0]";
-"save": "ADD_ITEM" | "UPDATE_ITEM";
+"merge": "MERGE" | "RESYNC";
+"onFail": "error.platform.todos.active.loading:invocation[0]" | "error.platform.todos.active.syncing:invocation[0]" | "error.platform.todos.loading:invocation[0]";
+"save": "RESYNC" | "SAVE";
 "updateItem": "UPDATE_ITEM";
         };
         eventsCausingDelays: {
@@ -33,10 +37,11 @@
           
         };
         eventsCausingServices: {
-          "loading$": "xstate.init";
-"syncing$": "ADD_ITEM" | "LOAD" | "MERGE" | "UPDATE_ITEM";
+          "load$": "xstate.init";
+"resync$": "ENABLE_SYNC";
+"sync$": "LOAD" | "MERGE" | "RESYNC" | "SAVE";
         };
-        matchesStates: "active" | "failed" | "idle";
+        matchesStates: "active" | "active.idle" | "active.loading" | "active.syncing" | "failed" | "loading" | { "active"?: "idle" | "loading" | "syncing"; };
         tags: never;
       }
   

@@ -2,12 +2,11 @@
   display: flex;
   flex-direction: column;
   gap: 24px;
-  padding: 42px;
+  padding: 64px;
 }
 
 form {
   display: flex;
-  flex-direction: column;
   gap: 8px;
   width: fit-content;
 }
@@ -29,6 +28,10 @@ ul {
   padding: 0;
   margin: 0;
 
+  > li:not(:last-child) {
+    margin-bottom: 8px;
+  }
+
   > li.complete {
     text-decoration: line-through;
   }
@@ -43,7 +46,21 @@ ul {
   /* Add styling for absolute positioned checkbox */
   > input[type="checkbox"] {
     position: absolute;
-    left: -20px;
+    left: -21px;
+  }
+
+  > button:first-of-type {
+    cursor: pointer;
+    position: absolute;
+    left: -36px;
+    height: 16px;
+    width: 16px;
+
+    /* remove button default styling */
+    padding: 0;
+    border: none;
+    outline: none;
+    background-color: transparent;
   }
 
   > div,
