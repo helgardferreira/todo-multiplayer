@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Todo } from "../types";
 import { updateTodo } from "../services/Todos";
-import { useOnClickOutside } from "../hooks/useOnClickOutside";
+import { useOnClickOutside } from "../lib/hooks/useOnClickOutside";
 
 type TodoProps = {
   item: Todo;
